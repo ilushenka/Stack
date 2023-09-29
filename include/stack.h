@@ -50,13 +50,13 @@ enum errors {
 
 #ifdef DEBUG
 
-int stack_init(Stack *stk, size_t capacity, const char *file_name,
+int stack_init(Stack *stk, size_t first_capacity, const char *file_name,
                  const char *func_name, int line_num);
 
 #define STACK_DUMP(stk, errors) stack_dump(stk, #stk, __FILE__, \
                                             __LINE__, __PRETTY_FUNCTION__, errors)
 
-#define STACK_INIT(stk, capacity) stack_init(stk, capacity, __FILE__, \
+#define STACK_INIT(stk, first_capacity) stack_init(stk, first_capacity, __FILE__, \
                                          __PRETTY_FUNCTION__, __LINE__ - 1)
 
 const unsigned long long canary_val = 0xD15C0C001;
@@ -81,7 +81,6 @@ int stack_init(Stack *stk, size_t capacity);
 
 static int stack_realloc(Stack *stk);
 
-const size_t capacity = 25;
 const size_t capacity_multiplier = 2;
 
 int stack_destroy(Stack *stk);

@@ -11,11 +11,13 @@ static bool check_struct_hash_equality(Stack *stk);
 static bool check_array_hash_equality(Stack *stk);
 #endif
 
+const size_t capacity = 25;
+
 int main() {
     elem_t ret_value = 0;
     Stack stk = {};
     STACK_INIT(&stk, capacity);
-    for(int i = 0; i < 50; i++)
+    for(int i = 0; i < 40; i++)
         stack_push(&stk, i);
     stack_pop(&stk, &ret_value);
     STACK_DUMP(&stk, 1023);
@@ -85,10 +87,10 @@ int stack_destroy(Stack *stk) {
 
 #ifndef DEBUG
 
-int stack_init(Stack *stk, size_t capacity) {
-    stk->data = (elem_t *)calloc(capacity, sizeof(elem_t));
+int stack_init(Stack *stk, size_t first_capacity) {
+    stk->data = (elem_t *)calloc(first_capacity, sizeof(elem_t));
     stk->size = 0;
-    stk->capacity = capacity;
+    stk->capacity = first_capacity;
 
     return stack_ok(stk);
 }
@@ -163,9 +165,9 @@ Error_info err_inf[] = {
 static void new_hash(Stack *stk) {
     stk->hash_array = 0;
     stk->hash_struct = 0;
-    stk->hash_struct = hash_calc(stk, sizeof(*stk));
+    stk->hash_struct = hash_calc(stk, (int)sizeof(*stk));
     stk->hash_array = hash_calc((canary_t *)stk->data - 1, 
-                        sizeof(canary_t) * 2 + sizeof(elem_t) * stk->capacity);
+                        (int)(sizeof(canary_t) * 2 + sizeof(elem_t) * stk->capacity));
 }
 
 static bool check_struct_hash_equality(Stack *stk) {
@@ -174,7 +176,7 @@ static bool check_struct_hash_equality(Stack *stk) {
 
     stk->hash_array = 0;
     stk->hash_struct = 0;
-    bool is_equal = (old_struct_hash == hash_calc(stk, sizeof(*stk)));
+    bool is_equal = (old_struct_hash == hash_calc(stk, (int)sizeof(*stk)));
     stk->hash_array = old_array_hash;
     stk->hash_struct = old_struct_hash;
     return is_equal;
@@ -182,7 +184,7 @@ static bool check_struct_hash_equality(Stack *stk) {
 
 static bool check_array_hash_equality(Stack *stk) {
     return stk->hash_array == hash_calc((canary_t *)stk->data - 1,
-                        sizeof(canary_t) * 2 + sizeof(elem_t) * stk->capacity);
+                        (int)(sizeof(canary_t) * 2 + sizeof(elem_t) * stk->capacity));
 }
 
 static int hash_calc(const void *stk, int stk_size) {
@@ -196,20 +198,20 @@ static int hash_calc(const void *stk, int stk_size) {
     return hash;
 }
 
-int stack_init(Stack *stk, size_t capacity, const char *file_name,
+int stack_init(Stack *stk, size_t first_capacity, const char *file_name,
                  const char *func_name, int line_num) {
-    stk->data = (elem_t *)calloc(capacity * sizeof(elem_t) +
+    stk->data = (elem_t *)calloc(first_capacity * sizeof(elem_t) +
                  2 * sizeof(canary_t), sizeof(char));
     stk->data = (elem_t *)((canary_t *)stk->data + 1);
     stk->size = 0;
-    stk->capacity = capacity;
+    stk->capacity = first_capacity;
     stk->stk_inf.file_name = file_name;
     stk->stk_inf.func_name = func_name;
     stk->stk_inf.line_num = line_num;
     stk->left_canary = canary_val;
     stk->right_canary = canary_val;
     *((canary_t *)stk->data - 1) = canary_val;
-    *((canary_t *)(stk->data + capacity)) = canary_val;
+    *((canary_t *)(stk->data + first_capacity)) = canary_val;
     
     new_hash(stk);
     
@@ -267,7 +269,7 @@ static int stack_realloc(Stack *stk) {
 
 int stack_dump(Stack *stk, const char *stk_name, const char *file_name,
                 int line_num, const char *func_name, int errors) {
-    for(int i = 0; i < sizeof(err_inf) / sizeof(err_inf[0]); i++) {
+    for(size_t i = 0; i < sizeof(err_inf) / sizeof(err_inf[0]); i++) {
         if(errors & err_inf[i].err_num)
             printf("%s", err_inf[i].err_descr);
     }
@@ -286,12 +288,12 @@ int stack_dump(Stack *stk, const char *stk_name, const char *file_name,
     printf("capacity = %ld\n", stk->capacity);
     printf("data[%p]\n", stk->data);
     printf("{\n");
-    for(int i = 0; i < stk->capacity; i++) {
+    for(size_t i = 0; i < stk->capacity; i++) {
         if(i < stk->size && stk->data[i] != POISON) {
-            printf("*[%d] = " PRINT_TYPE "\n", i, stk->data[i]);
+            printf("*[%ld] = " PRINT_TYPE "\n", i, stk->data[i]);
             continue;
         }
-            printf("[%d] = " PRINT_TYPE " (POISON)\n", i, stk->data[i]);
+            printf("[%ld] = " PRINT_TYPE " (POISON)\n", i, stk->data[i]);
     }
     printf("}\n");    
     return 0;
